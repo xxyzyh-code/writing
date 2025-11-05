@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8">
-  <title>末日抉择：整合版</title>
+  <title>末日抉择：整合版（修正版）</title>
   <style>
     body { font-family: "微软雅黑", sans-serif; background: #111; color: #eee; padding: 20px; }
     .choice { margin: 10px 0; padding: 10px; background: #333; cursor: pointer; border-radius: 5px; }
@@ -29,13 +29,14 @@
 
 <!-- 游戏主界面 -->
 <div id="main" style="display:none;">
-  <h1>🧟‍♂️ 末日抉择：整合版</h1>
+  <h1>🧟‍♂️ 末日抉择：整合版（修正版）</h1>
   <div id="story"></div>
   <div id="choices"></div>
   <div id="status"></div>
 </div>
 
 <script>
+/* 全局狀態 */
 let player = {
   hp: 100,
   trust: 50,
@@ -46,6 +47,7 @@ let player = {
 let chapter = 1;
 let activeTimeouts = [];
 
+/* UI / 流程函式 */
 function startGame() {
   document.getElementById("cover").style.display = "none";
   document.getElementById("gender").style.display = "block";
@@ -64,7 +66,7 @@ function chooseGender(gender) {
 
 function advanceTime(hours) {
   player.time.hour += hours;
-  if (player.time.hour >= 24) {
+  while (player.time.hour >= 24) {
     player.time.day += 1;
     player.time.hour -= 24;
   }
@@ -90,7 +92,9 @@ function restartGame() {
     inventory: []
   };
   chapter = 1;
-  document.getElementById("choices").style.display = "block";
+  document.getElementById("story").innerHTML = "";
+  document.getElementById("choices").innerHTML = "";
+  document.getElementById("main").style.display = "block";
   startChapter1();
 }
 
@@ -113,7 +117,7 @@ function showEnding() {
   document.getElementById("choices").style.display = "block";
 }
 
-// 第一章
+/* 章節：1 */
 function startChapter1() {
   document.getElementById("story").innerHTML =
     "<p>丧尸病毒爆发第7天，你独自躲在废弃图书馆中。窗外传来求救声，你必须做出选择：</p>";
@@ -122,6 +126,7 @@ function startChapter1() {
     <div class="choice" onclick="chapter1('hermit')">2️⃣ 隐居模式：拒绝所有人</div>
     <div class="choice" onclick="chapter1('selective')">3️⃣ 有限接纳：只接纳老人和孩子</div>
   `;
+  document.getElementById("choices").style.display = "block";
   updateStatus();
 }
 
@@ -130,7 +135,7 @@ function chapter1(option) {
   if (option === 'saint') {
     player.trust += 20;
     player.morality += 10;
-    player.inventory.push("中年男子");
+    if (!player.inventory.includes("中年男子")) player.inventory.push("中年男子");
     document.getElementById("story").innerHTML =
       "<p>你打开了门，迎接他们进来。孩子扑进你怀里哭泣，老人连声道谢。中年男子沉默不语，手中紧握着背包。</p>";
   } else if (option === 'hermit') {
@@ -141,7 +146,9 @@ function chapter1(option) {
   } else {
     player.trust += 5;
     player.morality += 2;
-    player.inventory.push("老人", "孩子");
+    // 記錄老人和孩子，以供後續劇情判斷（如果需要）
+    if (!player.inventory.includes("老人")) player.inventory.push("老人");
+    if (!player.inventory.includes("孩子")) player.inventory.push("孩子");
     document.getElementById("story").innerHTML =
       "<p>你只打开一条缝，让老人和孩子进来。中年男子怒视你一眼，转身离去。</p>";
   }
@@ -150,8 +157,9 @@ function chapter1(option) {
   activeTimeouts.push(setTimeout(startChapter2, 2000));
 }
 
-// 第二章
+/* 章節：2 */
 function startChapter2() {
+  document.getElementById("choices").style.display = "block";
   if (!player.inventory.includes("中年男子")) {
     document.getElementById("story").innerHTML =
       "<p>夜幕降临，楼下传来脚步声。你独自决定如何应对。</p>";
@@ -168,7 +176,7 @@ function startChapter2() {
       <div class="choice" onclick="chapter2('wait')">3️⃣ 封锁楼梯，等待天亮</div>
     `;
   }
-  document.getElementById("choices").style.display = "block";
+  updateStatus();
 }
 
 function chapter2(option) {
@@ -176,7 +184,7 @@ function chapter2(option) {
   if (option === 'solo') {
     let encounter = Math.random();
     if (encounter < 0.4) {
-      player.inventory.push("急救包");
+      if (!player.inventory.includes("急救包")) player.inventory.push("急救包");
       document.getElementById("story").innerHTML =
         "<p>你在楼下发现一个急救包，幸运地没有遇到丧尸。</p>";
     } else {
@@ -199,21 +207,24 @@ function chapter2(option) {
   } else {
     advanceTime(8);
     document.getElementById("story").innerHTML =
-      "<p>你封锁了楼梯，整晚未眠。天亮了，但你错过了楼下的动静。</p>";
+      "<p>你封锁了樓梯，整晚未眠。天亮了，但你錯過了樓下的動靜。</p>";
   }
   advanceTime(2);
   updateStatus();
   activeTimeouts.push(setTimeout(startChapter3, 2000));
 }
 
-// 第三章（修正版）
+/* 章節：3（修正：避免卡住，所有分支都有文字反饋） */
 function startChapter3() {
+  // 若沒中年男子：給一個簡單替代流程，並保證 UI 跟狀態更新
   if (!player.inventory.includes("中年男子")) {
     document.getElementById("story").innerHTML =
       "<p>清晨，你独自醒来。四周安静得可怕。你必须决定是否继续坚守或外出探索。</p>";
     document.getElementById("choices").innerHTML = `
       <div class="choice" onclick="startChapter4()">➡️ 继续前进</div>
     `;
+    document.getElementById("choices").style.display = "block";
+    updateStatus();
     return;
   }
 
@@ -225,22 +236,35 @@ function startChapter3() {
     <div class="choice" onclick="chapter3('search')">2️⃣ 偷偷检查他的背包</div>
     <div class="choice" onclick="chapter3('trust')">3️⃣ 选择相信他，继续共处</div>
   `;
+  updateStatus();
 }
 
 function chapter3(option) {
   document.getElementById("choices").style.display = "none";
+
   if (option === 'confront') {
+    // 判定：0..0.49 -> 他真有問題（攻擊），0.5..1.0 -> 無事（或只是擦傷）
     let infected = Math.random();
     if (infected < 0.5) {
+      // 他有問題（被感染或蓄意攻擊）
       player.trust -= 30;
       player.hp -= 20;
       document.getElementById("story").innerHTML =
         "<p>你发现他手臂上有咬痕。他突然暴起攻击，你用旧刀反击，受伤但幸存。</p>";
+      // 若他被確認有問題，從 inventory 移除以避免後續出現錯亂劇情
+      const idx = player.inventory.indexOf("中年男子");
+      if (idx !== -1) player.inventory.splice(idx, 1);
+    } else {
+      // 無事：只是誤會或擦傷
+      player.trust += 5;
+      document.getElementById("story").innerHTML =
+        "<p>你质问后发现只是擦伤，大家都松了一口气。信任略微增加。</p>";
     }
+
   } else if (option === 'search') {
     let found = Math.random();
     if (found < 0.4) {
-      player.inventory.push("抗病毒药剂");
+      if (!player.inventory.includes("抗病毒药剂")) player.inventory.push("抗病毒药剂");
       player.trust += 10;
       document.getElementById("story").innerHTML =
         "<p>你在他背包中发现一瓶抗病毒药剂。他可能是幸存者组织的一员。</p>";
@@ -249,19 +273,21 @@ function chapter3(option) {
       document.getElementById("story").innerHTML =
         "<p>你什么也没发现，但他察觉了你的行为，信任值下降。</p>";
     }
-  } else {
+
+  } else { // trust
     player.morality += 5;
     player.trust += 10;
-    player.inventory.push("瓶装水");
+    if (!player.inventory.includes("瓶装水")) player.inventory.push("瓶装水");
     document.getElementById("story").innerHTML =
       "<p>你选择相信他。他沉默片刻，随后递给你一瓶水，说：“谢谢你还愿意相信人。”</p>";
   }
+
   advanceTime(2);
   updateStatus();
   activeTimeouts.push(setTimeout(startChapter4, 2000));
 }
 
-// 第四章
+/* 章節：4 */
 function startChapter4() {
   document.getElementById("choices").style.display = "block";
   document.getElementById("story").innerHTML =
@@ -271,6 +297,7 @@ function startChapter4() {
     <div class="choice" onclick="chapter4('negotiate')">2️⃣ 尝试与对方谈判</div>
     <div class="choice" onclick="chapter4('retreat')">3️⃣ 放弃争夺，悄悄离开</div>
   `;
+  updateStatus();
 }
 
 function chapter4(option) {
@@ -310,7 +337,7 @@ function chapter4(option) {
   activeTimeouts.push(setTimeout(startChapter5, 2000));
 }
 
-// 第五章
+/* 章節：5 */
 function startChapter5() {
   document.getElementById("choices").style.display = "block";
   document.getElementById("story").innerHTML =
@@ -319,6 +346,7 @@ function startChapter5() {
     <div class="choice" onclick="chapter5('escape')">1️⃣ 冒险逃离图书馆</div>
     <div class="choice" onclick="chapter5('stay')">2️⃣ 坚守等待救援</div>
   `;
+  updateStatus();
 }
 
 function chapter5(option) {
