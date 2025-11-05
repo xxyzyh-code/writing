@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>末日抉择：整合版</title>
+  <style>
+    body { font-family: "微软雅黑", sans-serif; background: #111; color: #eee; padding: 20px; }
+    .choice { margin: 10px 0; padding: 10px; background: #333; cursor: pointer; border-radius: 5px; }
+    .choice:hover { background: #555; }
+    #status { margin-top: 20px; font-size: 14px; color: #ccc; }
+  </style>
+</head>
+<body>
+
+<!-- 封面界面 -->
+<div id="cover">
+  <h2>🌆 末日抉择</h2>
+  <p>丧尸病毒席卷全球，文明崩塌。你是最后的幸存者之一。</p>
+  <p>你能在这个世界中活下来吗？</p>
+  <div class="choice" onclick="startGame()">▶️ 开始游戏</div>
+</div>
+
+<!-- 性别选择界面 -->
+<div id="gender" style="display:none;">
+  <h3>请选择角色性别：</h3>
+  <div class="choice" onclick="chooseGender('male')">👨 男主：体力更强（HP +20）</div>
+  <div class="choice" onclick="chooseGender('female')">👩 女主：更具同理心（信任值 +20）</div>
+</div>
+
+<!-- 游戏主界面 -->
+<div id="main" style="display:none;">
+  <h1>🧟‍♂️ 末日抉择：整合版</h1>
+  <div id="story"></div>
+  <div id="choices"></div>
+  <div id="status"></div>
+</div>
+
+<script>
+let player = {
+  hp: 100,
+  trust: 50,
+  morality: 0,
+  time: { day: 1, hour: 8 },
+  inventory: []
+};
+let chapter = 1;
+let activeTimeouts = [];
+
+function startGame() {
+  document.getElementById("cover").style.display = "none";
+  document.getElementById("gender").style.display = "block";
+}
+
+function chooseGender(gender) {
+  document.getElementById("gender").style.display = "none";
+  document.getElementById("main").style.display = "block";
+  if (gender === 'male') {
+    player.hp += 20;
+  } else {
+    player.trust += 20;
+  }
+  startChapter1();
+}
+
+function advanceTime(hours) {
+  player.time.hour += hours;
+  if (player.time.hour >= 24) {
+    player.time.day += 1;
+    player.time.hour -= 24;
+  }
+}
+
+function updateStatus() {
+  document.getElementById("status").innerHTML =
+    `🩸 HP: ${player.hp} ｜ 🤝 信任值: ${player.trust} ｜ 🧠 道德值: ${player.morality} ｜ ⏳ 时间: Day ${player.time.day}, ${player.time.hour}:00 ｜ 🎒 背包: ${player.inventory.length ? player.inventory.join(", ") : "空"}`;
+}
+
+function clearAllTimeouts() {
+  activeTimeouts.forEach(id => clearTimeout(id));
+  activeTimeouts = [];
+}
+
+function restartGame() {
+  clearAllTimeouts();
+  player = {
+    hp: 100,
+    trust: 50,
+    morality: 0,
+    time: { day: 1, hour: 8 },
+    inventory: []
+  };
+  chapter = 1;
+  document.getElementById("choices").style.display = "block";
+  startChapter1();
+}
+
+function showEnding() {
+  let ending = "";
+  if (player.hp <= 0) {
+    ending = "☠️ 结局：死亡 — 你未能在末日中幸存。";
+  } else if (player.trust >= 70 && player.morality >= 15) {
+    ending = "🌈 结局：希望 — 你用善良与信任赢得了生存与未来。";
+  } else if (player.trust < 30) {
+    ending = "🧊 结局：孤独 — 你活了下来，但失去了人性与陪伴。";
+  } else {
+    ending = "⚖️ 结局：挣扎 — 你勉强活着，但代价沉重。";
+  }
+
+  document.getElementById("story").innerHTML += `<p><strong>${ending}</strong></p>`;
+  document.getElementById("choices").innerHTML = `
+    <div class="choice" onclick="restartGame()">🔁 重新开始游戏</div>
+  `;
+  document.getElementById("choices").style.display = "block";
+}
+
+// 第一章
+function startChapter1() {
+  document.getElementById("story").innerHTML =
+    "<p>丧尸病毒爆发第7天，你独自躲在废弃图书馆中。窗外传来求救声，你必须做出选择：</p>";
+  document.getElementById("choices").innerHTML = `
+    <div class="choice" onclick="chapter1('saint')">1️⃣ 圣母模式：接纳所有人</div>
+    <div class="choice" onclick="chapter1('hermit')">2️⃣ 隐居模式：拒绝所有人</div>
+    <div class="choice" onclick="chapter1('selective')">3️⃣ 有限接纳：只接纳老人和孩子</div>
+  `;
+  updateStatus();
+}
+
+function chapter1(option) {
+  document.getElementById("choices").style.display = "none";
+  if (option === 'saint') {
+    player.trust += 20;
+    player.morality += 10;
+    player.inventory.push("中年男子");
+    document.getElementById("story").innerHTML =
+      "<p>你打开了门，迎接他们进来。孩子扑进你怀里哭泣，老人连声道谢。中年男子沉默不语，手中紧握着背包。</p>";
+  } else if (option === 'hermit') {
+    player.trust -= 10;
+    player.morality -= 5;
+    document.getElementById("story").innerHTML =
+      "<p>你关上了门，任由敲门声渐渐远去。你知道，这可能是你最后一次听到人类的声音。</p>";
+  } else {
+    player.trust += 5;
+    player.morality += 2;
+    player.inventory.push("老人", "孩子");
+    document.getElementById("story").innerHTML =
+      "<p>你只打开一条缝，让老人和孩子进来。中年男子怒视你一眼，转身离去。</p>";
+  }
+  advanceTime(2);
+  updateStatus();
+  activeTimeouts.push(setTimeout(startChapter2, 2000));
+}
+
+// 第二章
+function startChapter2() {
+  if (!player.inventory.includes("中年男子")) {
+    document.getElementById("story").innerHTML =
+      "<p>夜幕降临，楼下传来脚步声。你独自决定如何应对。</p>";
+    document.getElementById("choices").innerHTML = `
+      <div class="choice" onclick="chapter2('solo')">1️⃣ 独自下楼查看</div>
+      <div class="choice" onclick="chapter2('wait')">2️⃣ 封锁楼梯，等待天亮</div>
+    `;
+  } else {
+    document.getElementById("story").innerHTML =
+      "<p>夜幕降临，楼下传来脚步声。你必须决定如何应对。</p>";
+    document.getElementById("choices").innerHTML = `
+      <div class="choice" onclick="chapter2('solo')">1️⃣ 独自下楼查看</div>
+      <div class="choice" onclick="chapter2('team')">2️⃣ 叫上中年男子同行</div>
+      <div class="choice" onclick="chapter2('wait')">3️⃣ 封锁楼梯，等待天亮</div>
+    `;
+  }
+  document.getElementById("choices").style.display = "block";
+}
+
+function chapter2(option) {
+  document.getElementById("choices").style.display = "none";
+  if (option === 'solo') {
+    let encounter = Math.random();
+    if (encounter < 0.4) {
+      player.inventory.push("急救包");
+      document.getElementById("story").innerHTML =
+        "<p>你在楼下发现一个急救包，幸运地没有遇到丧尸。</p>";
+    } else {
+      player.hp -= 20;
+      document.getElementById("story").innerHTML =
+        "<p>你被丧尸偷袭，受伤了！你勉强逃回楼上。</p>";
+    }
+  } else if (option === 'team') {
+    let betrayal = Math.random();
+    if (betrayal < 0.3) {
+      player.hp -= 30;
+      player.trust -= 20;
+      document.getElementById("story").innerHTML =
+        "<p>中年男子突然袭击你！你受伤严重，信任值下降。</p>";
+    } else {
+      player.trust += 10;
+      document.getElementById("story").innerHTML =
+        "<p>你们协作顺利，发现楼下无人，信任值提升。</p>";
+    }
+  } else {
+    advanceTime(8);
+    document.getElementById("story").innerHTML =
+      "<p>你封锁了楼梯，整晚未眠。天亮了，但你错过了楼下的动静。</p>";
+  }
+  advanceTime(2);
+  updateStatus();
+  activeTimeouts.push(setTimeout(startChapter3, 2000));
+}
+
+// 第三章（修正版）
+function startChapter3() {
+  if (!player.inventory.includes("中年男子")) {
+    document.getElementById("story").innerHTML =
+      "<p>清晨，你独自醒来。四周安静得可怕。你必须决定是否继续坚守或外出探索。</p>";
+    document.getElementById("choices").innerHTML = `
+      <div class="choice" onclick="startChapter4()">➡️ 继续前进</div>
+    `;
+    return;
+  }
+
+  document.getElementById("choices").style.display = "block";
+  document.getElementById("story").innerHTML =
+    "<p>清晨，你发现中年男子的袖口沾有血迹。他声称是擦伤，但孩子说他昨晚偷偷下楼。你必须决定如何处理。</p>";
+  document.getElementById("choices").innerHTML = `
+    <div class="choice" onclick="chapter3('confront')">1️⃣ 质问他是否被感染</div>
+    <div class="choice" onclick="chapter3('search')">2️⃣ 偷偷检查他的背包</div>
+    <div class="choice" onclick="chapter3('trust')">3️⃣ 选择相信他，继续共处</div>
+  `;
+}
+
+function chapter3(option) {
+  document.getElementById("choices").style.display = "none";
+  if (option === 'confront') {
+    let infected = Math.random();
+    if (infected < 0.5) {
+      player.trust -= 30;
+      player.hp -= 20;
+      document.getElementById("story").innerHTML =
+        "<p>你发现他手臂上有咬痕。他突然暴起攻击，你用旧刀反击，受伤但幸存。</p>";
+    }
+  } else if (option === 'search') {
+    let found = Math.random();
+    if (found < 0.4) {
+      player.inventory.push("抗病毒药剂");
+      player.trust += 10;
+      document.getElementById("story").innerHTML =
+        "<p>你在他背包中发现一瓶抗病毒药剂。他可能是幸存者组织的一员。</p>";
+    } else {
+      player.trust -= 15;
+      document.getElementById("story").innerHTML =
+        "<p>你什么也没发现，但他察觉了你的行为，信任值下降。</p>";
+    }
+  } else {
+    player.morality += 5;
+    player.trust += 10;
+    player.inventory.push("瓶装水");
+    document.getElementById("story").innerHTML =
+      "<p>你选择相信他。他沉默片刻，随后递给你一瓶水，说：“谢谢你还愿意相信人。”</p>";
+  }
+  advanceTime(2);
+  updateStatus();
+  activeTimeouts.push(setTimeout(startChapter4, 2000));
+}
+
+// 第四章
+function startChapter4() {
+  document.getElementById("choices").style.display = "block";
+  document.getElementById("story").innerHTML =
+    "<p>清晨，你在图书馆外发现一辆翻倒的补给车。附近有其他幸存者正在靠近。你必须决定是否争夺资源。</p>";
+  document.getElementById("choices").innerHTML = `
+    <div class="choice" onclick="chapter4('fight')">1️⃣ 冲过去抢夺资源</div>
+    <div class="choice" onclick="chapter4('negotiate')">2️⃣ 尝试与对方谈判</div>
+    <div class="choice" onclick="chapter4('retreat')">3️⃣ 放弃争夺，悄悄离开</div>
+  `;
+}
+
+function chapter4(option) {
+  document.getElementById("choices").style.display = "none";
+  if (option === 'fight') {
+    let outcome = Math.random();
+    if (outcome < 0.5) {
+      player.hp -= 30;
+      player.inventory.push("罐头x3", "电池");
+      document.getElementById("story").innerHTML =
+        "<p>你与对方发生冲突，虽然受伤，但成功抢到物资。</p>";
+    } else {
+      player.hp -= 50;
+      document.getElementById("story").innerHTML =
+        "<p>你被对方击退，严重受伤，未能获得任何资源。</p>";
+    }
+  } else if (option === 'negotiate') {
+    let success = Math.random();
+    if (success < 0.6) {
+      player.trust += 15;
+      player.inventory.push("水瓶", "药草");
+      document.getElementById("story").innerHTML =
+        "<p>你成功与对方达成协议，双方平分资源，信任值提升。</p>";
+    } else {
+      player.trust -= 10;
+      document.getElementById("story").innerHTML =
+        "<p>对方拒绝谈判并驱赶你，你空手而归。</p>";
+    }
+  } else {
+    player.morality += 5;
+    document.getElementById("story").innerHTML =
+      "<p>你选择避免冲突，悄悄离开。虽然没有获得资源，但你保住了安全与道德。</p>";
+  }
+
+  advanceTime(2);
+  updateStatus();
+  activeTimeouts.push(setTimeout(startChapter5, 2000));
+}
+
+// 第五章
+function startChapter5() {
+  document.getElementById("choices").style.display = "block";
+  document.getElementById("story").innerHTML =
+    "<p>图书馆外传来爆炸声，丧尸群正在逼近。你必须决定是否逃离，或坚守等待救援。</p>";
+  document.getElementById("choices").innerHTML = `
+    <div class="choice" onclick="chapter5('escape')">1️⃣ 冒险逃离图书馆</div>
+    <div class="choice" onclick="chapter5('stay')">2️⃣ 坚守等待救援</div>
+  `;
+}
+
+function chapter5(option) {
+  document.getElementById("choices").style.display = "none";
+  advanceTime(4);
+
+  if (option === 'escape') {
+    let chance = Math.random();
+    if (player.hp > 50 && chance < 0.6) {
+      player.hp -= 20;
+      player.trust += 10;
+      document.getElementById("story").innerHTML =
+        "<p>你成功逃出图书馆，途中受伤但幸存。你在废墟中找到一辆车，驶向未知。</p>";
+    } else {
+      player.hp = 0;
+      document.getElementById("story").innerHTML =
+        "<p>你在逃亡途中被丧尸围攻，最终力竭倒下。黑暗吞噬了你。</p>";
+    }
+  } else {
+    if (player.trust >= 60 && player.morality >= 10) {
+      document.getElementById("story").innerHTML =
+        "<p>你坚守图书馆，最终被幸存者组织发现并救援。你的信任与善良拯救了你和他人。</p>";
+    } else {
+      player.hp -= 40;
+      document.getElementById("story").innerHTML =
+        "<p>你等待了太久，资源耗尽，感染蔓延。你在孤独中死去。</p>";
+    }
+  }
+
+  updateStatus();
+  showEnding();
+}
+</script>
+</body>
+</html>
